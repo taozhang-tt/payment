@@ -16,31 +16,11 @@ import (
 )
 
 type Ali struct {
-	AppId            string
-	SignType         string // 签名类型：RSA、RSA2
-	AliPubKey        string // 支付宝公钥字符串
-	RsaPriKey        string // 自己生成的密钥字符串
-	NotifyUrl        string
-	IsSandbox        bool
-	SpecifiedChannel string
-}
-
-func init() {
-	//channel.Register("ali", func(conf *model.ChannelConfig) (channel.Channel, error) {
-	//	extra := new(Extra)
-	//	if err := json.Unmarshal([]byte(conf.Extra), extra); err != nil {
-	//		return nil, err
-	//	}
-	//	return &Ali{
-	//		AppId:            conf.AppId,
-	//		AliPubKey:        conf.PubKey,
-	//		RsaPriKey:        conf.PriKey,
-	//		NotifyUrl:        conf.NotifyUrl,
-	//		SignType:         extra.SignType,
-	//		IsSandbox:        extra.IsSandbox,
-	//		SpecifiedChannel: extra.SpecifiedChannel,
-	//	}, nil
-	//})
+	AppId     string
+	AliPubKey string // 支付宝公钥字符串
+	RsaPriKey string // 自己生成的密钥字符串
+	NotifyUrl string
+	Extra
 }
 
 // Pay 组装SDK支付所需参数
