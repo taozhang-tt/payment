@@ -15,12 +15,38 @@ import (
 	"payment/util"
 )
 
+var (
+	ErrSign = errors.New("verify sign failed")
+)
+
 type Ali struct {
 	AppId     string
 	AliPubKey string // 支付宝公钥字符串
 	RsaPriKey string // 自己生成的密钥字符串
 	NotifyUrl string
-	Extra
+	*Extra
+}
+
+type Option func(*Ali)
+
+func WithExtra(ex *Extra) Option {
+	return func(a *Ali) {
+		a.Extra = ex
+	}
+}
+
+func NewAli(appId, aliPubKey, rsaPriKey, notifyUrl string, opts ...Option) *Ali {
+	a := &Ali{
+		AppId:     appId,
+		AliPubKey: aliPubKey,
+		RsaPriKey: rsaPriKey,
+		NotifyUrl: notifyUrl,
+		Extra:     nil,
+	}
+	for _, opt := range opts {
+		opt(a)
+	}
+	return a
 }
 
 // BuildSDKParam 组装SDK支付所需参数
@@ -37,8 +63,9 @@ func (a *Ali) BuildSDKParam(outTradeNo, totalAmount, subject string) (map[string
 
 	bizContent, err := json.Marshal(bizContentMap)
 	if err != nil {
-		return nil, fmt.Errorf("json.Marshal(%v) with error(%v)", bizContentMap, err)
+		return nil, err
 	}
+
 	params := map[string]string{
 		"charset":     "utf-8",
 		"version":     "1.0",
@@ -59,6 +86,7 @@ func (a *Ali) BuildSDKParam(outTradeNo, totalAmount, subject string) (map[string
 	if err != nil {
 		return nil, err
 	}
+
 	params["sign"] = sign
 	return params, nil
 }
@@ -74,7 +102,7 @@ func (a *Ali) VerifyCallback(vals url.Values) error {
 		return err
 	}
 	if !ok {
-		return errors.New("verify sign failed")
+		return ErrSign
 	}
 	return nil
 }
