@@ -23,8 +23,8 @@ type Ali struct {
 	Extra
 }
 
-// Pay 组装SDK支付所需参数
-func (a *Ali) Pay(outTradeNo, totalAmount, subject string) (map[string]string, error) {
+// BuildSDKParam 组装SDK支付所需参数
+func (a *Ali) BuildSDKParam(outTradeNo, totalAmount, subject string) (map[string]string, error) {
 	bizContentMap := map[string]string{
 		"out_trade_no": outTradeNo,
 		"product_code": "QUICK_MSECURITY_PAY",
@@ -55,7 +55,7 @@ func (a *Ali) Pay(outTradeNo, totalAmount, subject string) (map[string]string, e
 		vals.Add(k, v)
 	}
 
-	sign, err := calSign(vals, a.RsaPriKey)
+	sign, err := a.calSign(vals, a.RsaPriKey)
 	if err != nil {
 		return nil, err
 	}
@@ -63,40 +63,19 @@ func (a *Ali) Pay(outTradeNo, totalAmount, subject string) (map[string]string, e
 	return params, nil
 }
 
-// Callback 支付回调
-func (a *Ali) Callback(vals url.Values) error {
+// VerifyCallback 验证支付回调参数
+func (a *Ali) VerifyCallback(vals url.Values) error {
 	sign := vals.Get("sign")
 	vals.Del("sign")
 	vals.Del("sign_type")
 
-	ok, err := verifySign(vals, sign, a.AliPubKey)
+	ok, err := a.verifySign(vals, sign, a.AliPubKey)
 	if err != nil {
 		return err
 	}
 	if !ok {
 		return errors.New("verify sign failed")
 	}
-	//tradeNo := vals.Get("trade_no")
-	//outTradeNo := vals.Get("out_trade_no")
-	//totalAmount := vals.Get("total_amount")
-
-	//order, err := model.GetOrderById(outTradeNo)
-	//if err != nil {
-	//	return err
-	//}
-	//order.ChannelOrderId = tradeNo
-	//order.Amount = totalAmount
-	//order.Status = int(shared.OrderStatusDeliver)
-	//
-	//// TODO: 上锁
-	//// 更新订单
-	//if err = model.UpdateOrder(order); err != nil {
-	//	return err
-	//}
-	//// 发货
-	//if err = channel.Deliver(order); err != nil {
-	//	return err
-	//}
 	return nil
 }
 
@@ -111,7 +90,7 @@ func (a *Ali) Query(outTradeNo string) (shared.OrderStatus, error) {
 		"version":     {"1.0"},
 		"biz_content": {fmt.Sprintf(`{"out_trade_no":"%v"}`, outTradeNo)},
 	}
-	sign, err := calSign(vals, a.RsaPriKey)
+	sign, err := a.calSign(vals, a.RsaPriKey)
 	vals.Add("sign", sign)
 
 	response, err := http.Get(fmt.Sprintf("https://openapi.alipay.com/gateway.do?%s", vals.Encode()))
@@ -145,7 +124,7 @@ func (a *Ali) Query(outTradeNo string) (shared.OrderStatus, error) {
 	return status, nil
 }
 
-func calSign(vals url.Values, key string) (string, error) {
+func (*Ali) calSign(vals url.Values, key string) (string, error) {
 	content := vals.Encode()
 	sig, err := util.SignPKCS1v15WithPemKey([]byte(content), []byte(key), crypto.SHA256)
 	if err != nil {
@@ -155,7 +134,7 @@ func calSign(vals url.Values, key string) (string, error) {
 	return s64, nil
 }
 
-func verifySign(vals url.Values, sig, key string) (bool, error) {
+func (*Ali) verifySign(vals url.Values, sig, key string) (bool, error) {
 	content := vals.Encode()
 	err := util.VerifyPKCS1v15WithDerKey([]byte(content), []byte(sig), []byte(key), crypto.SHA256)
 	if err != nil {
